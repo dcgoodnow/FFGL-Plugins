@@ -19,19 +19,19 @@
     </ProjectConfiguration>
   </ItemGroup>
   <PropertyGroup Label="Globals">
-    <ProjectGuid>{94F6BF59-9B21-427C-A076-0DEEA830E1A4}</ProjectGuid>
-    <RootNamespace>Project1</RootNamespace>
+    <ProjectGuid>{D4174AE6-231A-41B6-8FDD-86495B947D9B}</ProjectGuid>
+    <RootNamespace>My1080ptoNative</RootNamespace>
     <WindowsTargetPlatformVersion>8.1</WindowsTargetPlatformVersion>
   </PropertyGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.Default.props" />
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>true</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <CharacterSet>MultiByte</CharacterSet>
   </PropertyGroup>
   <PropertyGroup Condition="'$(Configuration)|$(Platform)'=='Release|Win32'" Label="Configuration">
-    <ConfigurationType>Application</ConfigurationType>
+    <ConfigurationType>DynamicLibrary</ConfigurationType>
     <UseDebugLibraries>false</UseDebugLibraries>
     <PlatformToolset>v140</PlatformToolset>
     <WholeProgramOptimization>true</WholeProgramOptimization>
@@ -57,6 +57,7 @@
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Debug|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
+    <Import Project="..\..\FFGLPlugin.props" />
   </ImportGroup>
   <ImportGroup Label="PropertySheets" Condition="'$(Configuration)|$(Platform)'=='Release|Win32'">
     <Import Project="$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props" Condition="exists('$(UserRootDir)\Microsoft.Cpp.$(Platform).user.props')" Label="LocalAppDataPlatform" />
@@ -118,6 +119,30 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="..\..\FFGL\FFGL.cpp" />
+    <ClCompile Include="..\..\FFGL\FFGLExtensions.cpp" />
+    <ClCompile Include="..\..\FFGL\FFGLFBO.cpp" />
+    <ClCompile Include="..\..\FFGL\FFGLPluginInfo.cpp" />
+    <ClCompile Include="..\..\FFGL\FFGLPluginInfoData.cpp" />
+    <ClCompile Include="..\..\FFGL\FFGLPluginManager.cpp" />
+    <ClCompile Include="..\..\FFGL\FFGLPluginSDK.cpp" />
+    <ClCompile Include="..\..\FFGL\FFGLShader.cpp" />
+    <ClCompile Include="1080pToNative.cpp" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\FFGL\FFGL.h" />
+    <ClInclude Include="..\..\FFGL\FFGLExtensions.h" />
+    <ClInclude Include="..\..\FFGL\FFGLFBO.h" />
+    <ClInclude Include="..\..\FFGL\FFGLLib.h" />
+    <ClInclude Include="..\..\FFGL\FFGLPluginInfo.h" />
+    <ClInclude Include="..\..\FFGL\FFGLPluginManager.h" />
+    <ClInclude Include="..\..\FFGL\FFGLPluginManager_inl.h" />
+    <ClInclude Include="..\..\FFGL\FFGLPluginSDK.h" />
+    <ClInclude Include="..\..\FFGL\FFGLShader.h" />
+    <ClInclude Include="1080pToNative.h" />
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="..\..\FFGL" />
   </ItemGroup>
   <Import Project="$(VCTargetsPath)\Microsoft.Cpp.targets" />
   <ImportGroup Label="ExtensionTargets">

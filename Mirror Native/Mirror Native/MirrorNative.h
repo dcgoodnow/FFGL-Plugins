@@ -3,6 +3,7 @@
 #include <stdio.h>
 #include <string>
 #include <time.h>
+#include <vector>
 #include "FFGL.h"
 #include "FFGLLib.h"
 #include "FFGLShader.h"
@@ -79,6 +80,8 @@ protected:
 	bool bInitialized;
 
 	ROI m_Roi;
+
+	std::vector<ROI> screens;
 
 	// Local fbo and texture
 	GLuint m_glTexture0;

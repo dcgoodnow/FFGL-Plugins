@@ -81,12 +81,14 @@ char *fragmentShaderCode = STRINGIFY(
 
 MirrorNative::MirrorNative()
 {
+#ifdef DEBUG
 	// Debug console window so printf works
 	FILE* pCout; // should really be freed on exit
 	AllocConsole();
 	freopen_s(&pCout, "CONOUT$", "w", stdout);
 	printf("Shader Maker Vers 1.004\n");
 	printf("GLSL version [%s]\n", glGetString(GL_SHADING_LANGUAGE_VERSION));
+#endif
 	
 	SetMinInputs( 0 );
 	SetMaxInputs( 2 );
@@ -157,91 +159,96 @@ FFResult MirrorNative::ProcessOpenGL( ProcessOpenGLStruct * pGL )
 		m_vpWidth = vpdim[2];
 		m_vpHeight = vpdim[3];
 
-		if (m_inputTextureLocation >= 0 || m_inputTextureLocation1 >= 0)
+		for (ROI screen : this->screens)
 		{
-			if (m_inputTextureLocation >= 0 && pGL->numInputTextures > 0 && pGL->inputTextures[0] != NULL)
+			if (m_inputTextureLocation >= 0 || m_inputTextureLocation1 >= 0)
 			{
-				Texture0 = *(pGL->inputTextures[0]);
-				maxCoords = GetMaxGLTexCoords( Texture0 );
-
-				if ((int)m_channelResolution[0][0] != Texture0.Width
-					|| (int)m_channelResolution[0][1] != Texture0.Height)
+				if (m_inputTextureLocation >= 0 && pGL->numInputTextures > 0 && pGL->inputTextures[0] != NULL)
 				{
-					if (m_glTexture0 > 0)
+					Texture0 = *(pGL->inputTextures[0]);
+					maxCoords = GetMaxGLTexCoords( Texture0 );
+
+					if ((int)m_channelResolution[0][0] != Texture0.Width
+						|| (int)m_channelResolution[0][1] != Texture0.Height)
 					{
-						glDeleteTextures( 1, &m_glTexture0 );
-						m_glTexture0 = 0;
+						if (m_glTexture0 > 0)
+						{
+							glDeleteTextures( 1, &m_glTexture0 );
+							m_glTexture0 = 0;
+						}
 					}
+
+					m_channelResolution[0][0] = (float)Texture0.Width;
+					m_channelResolution[0][1] = (float)Texture0.Height;
+
+					//CreateRectangleTexture( Texture0, maxCoords, m_glTexture0, GL_TEXTURE0, m_fbo, pGL->HostFBO );
+
+					CreateRectangleTexture( Texture0, maxCoords, screen, m_glTexture0, GL_TEXTURE0, m_fbo, pGL->HostFBO );
 				}
-
-				m_channelResolution[0][0] = (float)Texture0.Width;
-				m_channelResolution[0][1] = (float)Texture0.Height;
-
-				//CreateRectangleTexture( Texture0, maxCoords, m_glTexture0, GL_TEXTURE0, m_fbo, pGL->HostFBO );
-
-				CreateRectangleTexture( Texture0, maxCoords, m_Roi, m_glTexture0, GL_TEXTURE0, m_fbo, pGL->HostFBO );
 			}
+
+			lastTime = elapsedTime;
+			elapsedTime = GetCounter() / 1000.0;
+			//m_time = m_time + (float)(elapsedTime - lastTime);
+
+			m_shader.BindShader();
+
+
+			//Bind all the variables!
+			if (m_inputTextureLocation >= 0 && Texture0.Handle > 0)
+			{
+				m_extensions.glUniform1iARB( m_inputTextureLocation, 0 );
+			}
+
+			if (m_inputTextureLocation >= 0 && Texture0.Handle > 0)
+			{
+				m_extensions.glActiveTexture( GL_TEXTURE0 );
+
+				if (m_glTexture0 > 0)
+					glBindTexture( GL_TEXTURE_2D, m_glTexture0 );
+				else
+					glBindTexture( GL_TEXTURE_2D, Texture0.Handle );
+			}
+
+			ROI normalizedRoi = screen;
+			normalizedRoi.bottom = normalizedRoi.bottom * 2 - 1;
+			normalizedRoi.left = normalizedRoi.left * 2 - 1;
+			normalizedRoi.top = normalizedRoi.top * 2 - 1;
+			normalizedRoi.right = normalizedRoi.right * 2 - 1;
+
+			glEnable( GL_TEXTURE_2D );
+			glBegin( GL_QUADS );
+			glTexCoord2f( 0.0, 0.0 );
+			glVertex2f( normalizedRoi.left, normalizedRoi.bottom );
+			glTexCoord2f( 0.0, 1.0 );
+			glVertex2f( normalizedRoi.left, normalizedRoi.top );
+			glTexCoord2f( 1.0, 1.0 );
+			glVertex2f( (normalizedRoi.right - normalizedRoi.left) / 2 + normalizedRoi.left, normalizedRoi.top );
+			glTexCoord2f( 1.0, 0.0 );
+			glVertex2f( (normalizedRoi.right - normalizedRoi.left) / 2 + normalizedRoi.left, normalizedRoi.bottom );
+
+			//mirror
+			glTexCoord2f( 1.0, 0.0 );
+			glVertex2f( (normalizedRoi.right - normalizedRoi.left) / 2 + normalizedRoi.left, normalizedRoi.bottom );
+			glTexCoord2f( 1.0, 1.0 );
+			glVertex2f( (normalizedRoi.right - normalizedRoi.left) / 2 + normalizedRoi.left, normalizedRoi.top );
+			glTexCoord2f( 0.0, 1.0 );
+			glVertex2f( normalizedRoi.right, normalizedRoi.top );
+			glTexCoord2f( 0.0, 0.0 );
+			glVertex2f( normalizedRoi.right, normalizedRoi.bottom );
+			glEnd();
+			glDisable( GL_TEXTURE_2D );
+
+			// unbind input texture 0
+			if (m_inputTextureLocation >= 0 && Texture0.Handle > 0) {
+				m_extensions.glActiveTexture( GL_TEXTURE0 );
+				glBindTexture( GL_TEXTURE_2D, 0 );
+			}
+
+			m_shader.UnbindShader();
+
 		}
 
-		lastTime = elapsedTime;
-		elapsedTime = GetCounter() / 1000.0;
-		//m_time = m_time + (float)(elapsedTime - lastTime);
-
-		m_shader.BindShader();
-
-
-		//Bind all the variables!
-		if (m_inputTextureLocation >= 0 && Texture0.Handle > 0)
-		{
-			m_extensions.glUniform1iARB( m_inputTextureLocation, 0);
-		}
-
-		if (m_inputTextureLocation >= 0 && Texture0.Handle > 0)
-		{
-			m_extensions.glActiveTexture( GL_TEXTURE0 );
-
-			if (m_glTexture0 > 0)
-				glBindTexture( GL_TEXTURE_2D, m_glTexture0 );
-			else
-				glBindTexture( GL_TEXTURE_2D, Texture0.Handle);
-		}
-
-		ROI normalizedRoi = m_Roi;
-		normalizedRoi.bottom = normalizedRoi.bottom * 2 - 1;
-		normalizedRoi.left = normalizedRoi.left * 2 - 1;
-		normalizedRoi.top = normalizedRoi.top * 2 - 1;
-		normalizedRoi.right = normalizedRoi.right * 2 - 1;
-
-		glEnable( GL_TEXTURE_2D );
-		glBegin( GL_QUADS );
-		glTexCoord2f( 0.0, 0.0 );
-		glVertex2f( normalizedRoi.left, normalizedRoi.bottom);
-		glTexCoord2f( 0.0, 1.0 );
-		glVertex2f( normalizedRoi.left, normalizedRoi.top);
-		glTexCoord2f( 1.0, 1.0 );
-		glVertex2f( (normalizedRoi.right - normalizedRoi.left) / 2 + normalizedRoi.left, normalizedRoi.top );
-		glTexCoord2f( 1.0, 0.0 );
-		glVertex2f( (normalizedRoi.right - normalizedRoi.left) / 2 + normalizedRoi.left, normalizedRoi.bottom);
-
-		//mirror
-		glTexCoord2f( 1.0, 0.0 );
-		glVertex2f( (normalizedRoi.right - normalizedRoi.left) / 2 + normalizedRoi.left, normalizedRoi.bottom);
-		glTexCoord2f( 1.0, 1.0 );
-		glVertex2f( (normalizedRoi.right - normalizedRoi.left) / 2 + normalizedRoi.left, normalizedRoi.top );
-		glTexCoord2f( 0.0, 1.0 );
-		glVertex2f( normalizedRoi.right, normalizedRoi.top);
-		glTexCoord2f( 0.0, 0.0 );
-		glVertex2f( normalizedRoi.right, normalizedRoi.bottom);
-		glEnd();
-		glDisable( GL_TEXTURE_2D );
-
-		// unbind input texture 0
-		if (m_inputTextureLocation >= 0 && Texture0.Handle > 0) {
-			m_extensions.glActiveTexture( GL_TEXTURE0 );
-			glBindTexture( GL_TEXTURE_2D, 0 );
-		}
-
-		m_shader.UnbindShader();
 	}
 
 	return FF_SUCCESS;
@@ -322,6 +329,53 @@ void MirrorNative::SetDefaults()
 	m_glTexture0 = 0;
 	m_glTexture1 = 0;
 	m_fbo = 0;
+
+	//set screen ROI's
+
+	ROI screen;
+	
+	//back wall
+	screen.bottom = 1.0f - (512.0f / 1080.0f);
+	screen.top = 1.0f;
+	screen.left = 0.0f;
+	screen.right = .5f;
+	this->screens.push_back( screen );
+
+	//dj booth
+	screen.bottom = 1.0f - ((512.0f + 375.0f) / 1080.0f);
+	screen.top = 1.0f - (512.0f / 1080.0f);
+	screen.left = 649.0 / 4096.0;
+	screen.right = screen.left + (750.0f / 4096.0f);
+	this->screens.push_back( screen );
+
+	//screen near bar
+	screen.bottom = 1.0f - (384.0f / 1080.0f);
+	screen.top = 1.0f;
+	screen.left = (2432.0f / 4096.0f);
+	screen.right = (3712.0f / 4096.0f);
+	this->screens.push_back( screen );
+
+	//outer wall L
+	screen.bottom = 0.0f;
+	screen.top = 384.0f / 1080.0f;
+	screen.left = 1792.0f / 4096.0f;
+	screen.right = screen.left + (640.0f / 4096.0f);
+	this->screens.push_back( screen );
+
+	//south wall l
+	screen.left = screen.right;
+	screen.right += 512.0f / 4096.0f;
+	this->screens.push_back( screen );
+
+	//south wall r
+	screen.left = screen.right;
+	screen.right += 512.0f / 4096.0f;
+	this->screens.push_back( screen );
+
+	//outer wall r
+	screen.left = screen.right;
+	screen.right += 640.0f / 4096.0f;
+	this->screens.push_back( screen );
 }
 
 void MirrorNative::StartCounter()
@@ -339,6 +393,7 @@ void MirrorNative::StartCounter()
 	start = std::chrono::steady_clock::now();
 #endif
 }
+	FFGLTextureStruct Texture1;
 
 double MirrorNative::GetCounter()
 {

@@ -5,6 +5,8 @@ VisualStudioVersion = 14.0.23107.0
 MinimumVisualStudioVersion = 10.0.40219.1
 Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Mirror Native", "Mirror Native\Mirror Native.vcxproj", "{4BE36000-E56D-4E3F-B10E-F46C9EFCEAED}"
 EndProject
+Project("{8BC9CEB8-8B4A-11D0-8D11-00A0C91BC942}") = "Project1", "Project1\Project1.vcxproj", "{94F6BF59-9B21-427C-A076-0DEEA830E1A4}"
+EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
 		Debug|x64 = Debug|x64
@@ -21,6 +23,14 @@ Global
 		{4BE36000-E56D-4E3F-B10E-F46C9EFCEAED}.Release|x64.Build.0 = Release|x64
 		{4BE36000-E56D-4E3F-B10E-F46C9EFCEAED}.Release|x86.ActiveCfg = Release|Win32
 		{4BE36000-E56D-4E3F-B10E-F46C9EFCEAED}.Release|x86.Build.0 = Release|Win32
+		{94F6BF59-9B21-427C-A076-0DEEA830E1A4}.Debug|x64.ActiveCfg = Debug|x64
+		{94F6BF59-9B21-427C-A076-0DEEA830E1A4}.Debug|x64.Build.0 = Debug|x64
+		{94F6BF59-9B21-427C-A076-0DEEA830E1A4}.Debug|x86.ActiveCfg = Debug|Win32
+		{94F6BF59-9B21-427C-A076-0DEEA830E1A4}.Debug|x86.Build.0 = Debug|Win32
+		{94F6BF59-9B21-427C-A076-0DEEA830E1A4}.Release|x64.ActiveCfg = Release|x64
+		{94F6BF59-9B21-427C-A076-0DEEA830E1A4}.Release|x64.Build.0 = Release|x64
+		{94F6BF59-9B21-427C-A076-0DEEA830E1A4}.Release|x86.ActiveCfg = Release|Win32
+		{94F6BF59-9B21-427C-A076-0DEEA830E1A4}.Release|x86.Build.0 = Release|Win32
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE

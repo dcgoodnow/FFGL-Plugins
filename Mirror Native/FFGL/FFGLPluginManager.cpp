@@ -132,7 +132,7 @@ void CFFGLPluginManager::SetParamInfo(unsigned int dwIndex, const char* pchName,
 
 	pInfo->dwType = dwType;
 	pInfo->DefaultValue = 0;
-	pInfo->StrDefaultValue = strdup(pchDefaultValue);
+	pInfo->StrDefaultValue = _strdup(pchDefaultValue);
 	pInfo->pNext = NULL;
 	if (m_pFirst == NULL) m_pFirst = pInfo; 
 	if (m_pLast != NULL) m_pLast->pNext = pInfo;

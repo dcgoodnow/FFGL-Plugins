@@ -28,6 +28,14 @@ typedef int64_t LARGE_INTEGER;
 #define GL_READ_FRAMEBUFFER_EXT		0x8CA8
 #define GL_TEXTURE_WRAP_R			0x8072
 
+struct ROI
+{
+	float top;
+	float left;
+	float bottom;
+	float right;
+};
+
 class MirrorNative : public CFreeFrameGLPlugin
 {
 
@@ -69,6 +77,8 @@ public:
 protected:
 
 	bool bInitialized;
+
+	ROI m_Roi;
 
 	// Local fbo and texture
 	GLuint m_glTexture0;
@@ -113,4 +123,5 @@ protected:
 	double GetCounter();
 	bool LoadShader( std::string shaderString );
 	void CreateRectangleTexture( FFGLTextureStruct texture, FFGLTexCoords maxCoords, GLuint &glTexture, GLenum texunit, GLuint &fbo, GLuint hostFbo );
+	void CreateRectangleTexture( FFGLTextureStruct texture, FFGLTexCoords maxCoords, ROI roi, GLuint &glTexture, GLenum texunit, GLuint &fbo, GLuint hostFbo );
 };

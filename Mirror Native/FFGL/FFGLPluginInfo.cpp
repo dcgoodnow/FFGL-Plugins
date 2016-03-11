@@ -62,8 +62,8 @@ CFFGLPluginInfo::CFFGLPluginInfo(
 	m_PluginInfo.PluginType = dwPluginType;
 
 	// Filling PluginExtendedInfoStruct
-	m_PluginExtendedInfo.About = strdup(pchAbout);
-	m_PluginExtendedInfo.Description = strdup(pchDescription);
+	m_PluginExtendedInfo.About = _strdup(pchAbout);
+	m_PluginExtendedInfo.Description = _strdup(pchDescription);
 	m_PluginExtendedInfo.PluginMajorVersion = dwPluginMajorVersion;
 	m_PluginExtendedInfo.PluginMinorVersion = dwPluginMinorVersion;
 	if ((dwFreeFrameExtendedDataSize > 0) && (pFreeFrameExtendedDataBlock != NULL)) {

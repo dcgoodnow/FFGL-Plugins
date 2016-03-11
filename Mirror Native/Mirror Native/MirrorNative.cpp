@@ -7,7 +7,10 @@ int( *cross_secure_sprintf )(char *, size_t, const char *, ...) = sprintf_s;
 int( *cross_secure_sprintf )(char *, size_t, const char *, ...) = snprintf;
 #endif
 
-#define FFPARAM_TEST	(0)
+#define FFPARAM_BOTTOM	(0)
+#define FFPARAM_LEFT	(1)
+#define FFPARAM_TOP		(2)
+#define FFPARAM_RIGHT	(3)
 
 #define STRINGIFY(A) #A
 
@@ -68,10 +71,11 @@ char *vertexShaderCode = STRINGIFY(
 char *fragmentShaderCode = STRINGIFY(
 	// ==================== PASTE WITHIN THESE LINES =======================
 
+	uniform sampler2D tex0;
 
 	// Red screen test shader
 	void main(void) {
-		gl_FragColor = vec4(1.0, 0.0, 0.0, 1.0);
+		gl_FragColor = texture2D( tex0, gl_TexCoord[0].st );
 	}
 );
 
@@ -88,7 +92,12 @@ MirrorNative::MirrorNative()
 	SetMaxInputs( 2 );
 
 	//Setup Parameters
-	SetParamInfo( FFPARAM_TEST, "Test", FF_TYPE_STANDARD, 0.5f );
+	SetParamInfo( FFPARAM_BOTTOM,	"Bottom Bound"	, FF_TYPE_STANDARD, 0.0f );
+	SetParamInfo( FFPARAM_LEFT,		"Left Bound"	, FF_TYPE_STANDARD, 0.0f );
+	SetParamInfo( FFPARAM_TOP,		"Top Bound"		, FF_TYPE_STANDARD, 1.0f );
+	SetParamInfo( FFPARAM_RIGHT,	"Right Bound"	, FF_TYPE_STANDARD, 1.0f );
+
+	m_Roi = { 0.0f, 0.0f, 1.0f, 1.0f };
 
 	SetDefaults();
 
@@ -138,11 +147,8 @@ FFResult MirrorNative::DeInitGL()
 FFResult MirrorNative::ProcessOpenGL( ProcessOpenGLStruct * pGL )
 {
 	FFGLTextureStruct Texture0;
-	FFGLTextureStruct Texture1;
 
 	FFGLTexCoords maxCoords;
-	time_t datime;
-	struct tm tmbuff;
 
 	if (bInitialized) 
 	{
@@ -171,7 +177,9 @@ FFResult MirrorNative::ProcessOpenGL( ProcessOpenGLStruct * pGL )
 				m_channelResolution[0][0] = (float)Texture0.Width;
 				m_channelResolution[0][1] = (float)Texture0.Height;
 
-				CreateRectangleTexture( Texture0, maxCoords, m_glTexture0, GL_TEXTURE0, m_fbo, pGL->HostFBO );
+				//CreateRectangleTexture( Texture0, maxCoords, m_glTexture0, GL_TEXTURE0, m_fbo, pGL->HostFBO );
+
+				CreateRectangleTexture( Texture0, maxCoords, m_Roi, m_glTexture0, GL_TEXTURE0, m_fbo, pGL->HostFBO );
 			}
 		}
 
@@ -181,12 +189,12 @@ FFResult MirrorNative::ProcessOpenGL( ProcessOpenGLStruct * pGL )
 
 		m_shader.BindShader();
 
-		if (m_inputTextureLocation >= 0 && Texture0.Handle > 0)
-		{
-			m_extensions.glUniform1iARB( m_inputTextureLocation, 0 );
-		}
 
 		//Bind all the variables!
+		if (m_inputTextureLocation >= 0 && Texture0.Handle > 0)
+		{
+			m_extensions.glUniform1iARB( m_inputTextureLocation, 0);
+		}
 
 		if (m_inputTextureLocation >= 0 && Texture0.Handle > 0)
 		{
@@ -198,16 +206,32 @@ FFResult MirrorNative::ProcessOpenGL( ProcessOpenGLStruct * pGL )
 				glBindTexture( GL_TEXTURE_2D, Texture0.Handle);
 		}
 
+		ROI normalizedRoi = m_Roi;
+		normalizedRoi.bottom = normalizedRoi.bottom * 2 - 1;
+		normalizedRoi.left = normalizedRoi.left * 2 - 1;
+		normalizedRoi.top = normalizedRoi.top * 2 - 1;
+		normalizedRoi.right = normalizedRoi.right * 2 - 1;
+
 		glEnable( GL_TEXTURE_2D );
 		glBegin( GL_QUADS );
 		glTexCoord2f( 0.0, 0.0 );
-		glVertex2f( -1.0, -1.0 );
+		glVertex2f( normalizedRoi.left, normalizedRoi.bottom);
 		glTexCoord2f( 0.0, 1.0 );
-		glVertex2f( -1.0, 1.0 );
+		glVertex2f( normalizedRoi.left, normalizedRoi.top);
 		glTexCoord2f( 1.0, 1.0 );
-		glVertex2f( 1.0, 1.0 );
+		glVertex2f( (normalizedRoi.right - normalizedRoi.left) / 2 + normalizedRoi.left, normalizedRoi.top );
 		glTexCoord2f( 1.0, 0.0 );
-		glVertex2f( 1.0, -1.0 );
+		glVertex2f( (normalizedRoi.right - normalizedRoi.left) / 2 + normalizedRoi.left, normalizedRoi.bottom);
+
+		//mirror
+		glTexCoord2f( 1.0, 0.0 );
+		glVertex2f( (normalizedRoi.right - normalizedRoi.left) / 2 + normalizedRoi.left, normalizedRoi.bottom);
+		glTexCoord2f( 1.0, 1.0 );
+		glVertex2f( (normalizedRoi.right - normalizedRoi.left) / 2 + normalizedRoi.left, normalizedRoi.top );
+		glTexCoord2f( 0.0, 1.0 );
+		glVertex2f( normalizedRoi.right, normalizedRoi.top);
+		glTexCoord2f( 0.0, 0.0 );
+		glVertex2f( normalizedRoi.right, normalizedRoi.bottom);
 		glEnd();
 		glDisable( GL_TEXTURE_2D );
 
@@ -225,20 +249,258 @@ FFResult MirrorNative::ProcessOpenGL( ProcessOpenGLStruct * pGL )
 
 FFResult MirrorNative::SetFloatParameter( unsigned int index, float value )
 {
-	return FFResult();
+	switch (index)
+	{
+	case FFPARAM_BOTTOM:
+		m_Roi.bottom = value;
+		break;
+
+	case FFPARAM_LEFT:
+		m_Roi.left = value;
+		break;
+
+	case FFPARAM_TOP:
+		m_Roi.top = value;
+		break;
+
+	case FFPARAM_RIGHT:
+		m_Roi.right = value;
+		break;
+
+	default:
+		return FF_FAIL;
+	}
+	return FF_SUCCESS;
 }
 
 float MirrorNative::GetFloatParameter( unsigned int index )
 {
-	return 0.0f;
+	switch (index)
+	{
+	case FFPARAM_BOTTOM:
+		return m_Roi.bottom;
+		break;
+
+	case FFPARAM_LEFT:
+		return m_Roi.left;
+		break;
+
+	case FFPARAM_TOP:
+		return m_Roi.top;
+		break;
+
+	case FFPARAM_RIGHT:
+		return m_Roi.right;
+		break;
+
+	default:
+		return FF_FAIL;
+	}
 }
 
 FFResult MirrorNative::GetInputStatus( DWORD dwIndex )
 {
-	return FFResult();
+	return FF_SUCCESS;
 }
 
 char * MirrorNative::GetParameterDisplay( DWORD dwIndex )
 {
-	return nullptr;
+	return "1";
+}
+
+void MirrorNative::SetDefaults()
+{
+	elapsedTime = 0.0;
+	lastTime = 0.0;
+#if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__))
+	PCFreq = 0.0;
+	CounterStart = 0;
+#else
+	start = std::chrono::steady_clock::now();
+#endif
+
+	m_glTexture0 = 0;
+	m_glTexture1 = 0;
+	m_fbo = 0;
+}
+
+void MirrorNative::StartCounter()
+{
+#if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__))
+	LARGE_INTEGER li;
+	// Find frequency
+	QueryPerformanceFrequency( &li );
+	PCFreq = double( li.QuadPart ) / 1000.0;
+	// Second call needed
+	QueryPerformanceCounter( &li );
+	CounterStart = li.QuadPart;
+#else
+	// posix c++11
+	start = std::chrono::steady_clock::now();
+#endif
+}
+
+double MirrorNative::GetCounter()
+{
+#if (defined(WIN32) || defined(_WIN32) || defined(__WIN32__))
+	LARGE_INTEGER li;
+	QueryPerformanceCounter( &li );
+	return double( li.QuadPart - CounterStart ) / PCFreq;
+#else
+	// posix c++11
+	end = std::chrono::steady_clock::now();
+	return std::chrono::duration_cast<std::chrono::microseconds>(end - start).count() / 1000.;
+#endif
+	return 0;
+
+}
+
+bool MirrorNative::LoadShader( std::string shaderString )
+{
+	m_shader.SetExtensions( &m_extensions );
+	if (!m_shader.Compile( vertexShaderCode, shaderString.c_str() ))
+	{
+		printf( "Shader failed to compile." );
+		return false;
+	}
+	else
+	{
+		bool success = false;
+		if (m_shader.IsReady())
+		{
+			if (m_shader.BindShader())
+				success = true;
+		}
+		if (!success)
+			return false;
+		else
+		{
+			//get uniform locations here using m_shader.FindUniform("string")
+			m_inputTextureLocation = -1;
+
+			if (m_inputTextureLocation < 0)
+				m_inputTextureLocation = m_shader.FindUniform( "tex0" );
+
+			m_shader.UnbindShader();
+			if (m_glTexture0 > 0) glDeleteTextures( 1, &m_glTexture0 );
+			if (m_glTexture1 > 0) glDeleteTextures( 1, &m_glTexture1 );
+			m_glTexture0 = 0;
+			m_glTexture1 = 0;
+
+			StartCounter();
+
+			return true;
+		}
+	}
+	return false;
+}
+
+void MirrorNative::CreateRectangleTexture( FFGLTextureStruct texture, FFGLTexCoords maxCoords, GLuint & glTexture, GLenum texunit, GLuint & fbo, GLuint hostFbo )
+{
+	if (fbo == 0)
+	{
+		m_extensions.glGenFramebuffersEXT( 1, &fbo );
+	}
+
+	if (glTexture == 0)
+	{
+		glGenTextures( 1, &glTexture );
+		m_extensions.glActiveTexture( texunit );
+		glBindTexture( GL_TEXTURE_2D, glTexture );
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, texture.Width, texture.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+		glBindTexture( GL_TEXTURE_2D, 0 );
+		m_extensions.glActiveTexture( GL_TEXTURE0 );
+	}
+	m_extensions.glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, fbo );
+	m_extensions.glFramebufferTexture2DEXT( GL_READ_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, glTexture, 0 );
+
+	glEnable( GL_TEXTURE_2D );
+	glBindTexture( GL_TEXTURE_2D, texture.Handle );
+	glBegin( GL_QUADS );
+
+	//lower left
+	glTexCoord2f( 0.0, 0.0 );
+	glVertex2f( -1.0, -1.0 );
+	//upper left
+	glTexCoord2f( 0.0, (float)maxCoords.t );
+	glVertex2f( -1.0, 1.0 );
+	// upper right
+	glTexCoord2f( (float)maxCoords.s, (float)maxCoords.t );
+	glVertex2f( 1.0, 1.0 );
+	//lower right
+	glTexCoord2f( (float)maxCoords.s, 0.0 );
+	glVertex2f( 1.0, -1.0 );
+	glEnd();
+	glDisable( GL_TEXTURE_2D );
+
+	glBindTexture( GL_TEXTURE_2D , 0);
+
+	if (hostFbo > 0)
+		m_extensions.glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, hostFbo );
+	else
+		m_extensions.glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
+}
+
+void MirrorNative::CreateRectangleTexture( FFGLTextureStruct texture, FFGLTexCoords maxCoords, ROI roi, GLuint & glTexture, GLenum texunit, GLuint & fbo, GLuint hostFbo )
+{
+	if (fbo == 0)
+	{
+		m_extensions.glGenFramebuffersEXT( 1, &fbo );
+	}
+
+	float texWidth = (float)maxCoords.s;
+	float texHeight = (float)maxCoords.t;
+
+	roi.left *= texWidth;
+	roi.right *= texWidth;
+	roi.bottom *= texHeight;
+	roi.top *= texHeight;
+
+	if (glTexture == 0)
+	{
+		glGenTextures( 1, &glTexture );
+		m_extensions.glActiveTexture( texunit );
+		glBindTexture( GL_TEXTURE_2D, glTexture );
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_S, GL_REPEAT );
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_T, GL_REPEAT );
+		glTexParameterf( GL_TEXTURE_2D, GL_TEXTURE_WRAP_R, GL_REPEAT );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR );
+		glTexParameteri( GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR );
+		glTexImage2D( GL_TEXTURE_2D, 0, GL_RGBA, texture.Width, texture.Height, 0, GL_RGBA, GL_UNSIGNED_BYTE, NULL );
+		glBindTexture( GL_TEXTURE_2D, 0 );
+		m_extensions.glActiveTexture( GL_TEXTURE0 );
+	}
+	m_extensions.glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, fbo );
+	m_extensions.glFramebufferTexture2DEXT( GL_READ_FRAMEBUFFER_EXT, GL_COLOR_ATTACHMENT0_EXT, GL_TEXTURE_2D, glTexture, 0 );
+
+	glEnable( GL_TEXTURE_2D );
+	glBindTexture( GL_TEXTURE_2D, texture.Handle );
+	glBegin( GL_QUADS );
+
+	//lower left
+	glTexCoord2f( roi.left, roi.bottom);
+	glVertex2f( -1.0, -1.0 );
+	//upper left
+	glTexCoord2f( roi.left, roi.top);
+	glVertex2f( -1.0, 1.0 );
+	// upper right
+	glTexCoord2f( roi.right, roi.top);
+	glVertex2f( 1.0, 1.0 );
+	//lower right
+	glTexCoord2f( roi.right, roi.bottom);
+	glVertex2f( 1.0, -1.0 );
+	glEnd();
+	glDisable( GL_TEXTURE_2D );
+
+	glBindTexture( GL_TEXTURE_2D , 0);
+
+	if (hostFbo > 0)
+		m_extensions.glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, hostFbo );
+	else
+		m_extensions.glBindFramebufferEXT( GL_FRAMEBUFFER_EXT, 0 );
 }

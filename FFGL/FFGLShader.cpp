@@ -209,6 +209,21 @@ int FFGLShader::Compile(const char *vtxProgram, const char *fragProgram)
   return linkSuccess;
 }
 
+GLint FFGLShader::GetVertexShaderID()
+{
+	return this->m_glVertexShader;
+}
+
+GLint FFGLShader::GetFragmentShaderID()
+{
+	return this->m_glFragmentShader;
+}
+
+int FFGLShader::GetShaderID()
+{
+	return this->m_glProgram;
+}
+
 GLuint FFGLShader::FindUniform(const char *name)
 {
   return m_extensions->glGetUniformLocationARB(m_glProgram,name);

@@ -16,6 +16,10 @@ public:
   
   int Compile(const char *vtxProgram, const char *fragProgram);
 
+  int GetVertexShaderID();
+  int GetFragmentShaderID();
+  int GetShaderID();
+
   GLuint FindUniform(const char *name);
   
   int BindShader();

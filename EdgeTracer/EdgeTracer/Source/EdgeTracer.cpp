@@ -40,7 +40,7 @@ out vec4 o_color;
 void main()
 {
 	gl_Position = vtex;
-	color = o_color;
+	o_color = color;
 } );
 
 char *fragmentShaderCode = STRINGIFY(
@@ -51,7 +51,7 @@ in vec4 o_color;
 // Red screen test shader
 void main( void ) {
 	//gl_FragColor = o_color;
-	gl_FragColor = vec4( 1.0, 1.0, 1.0, 1.0 );
+	gl_FragColor = o_color;
 }
 );
 
@@ -250,12 +250,11 @@ bool EdgeTracer::LoadShader( std::string shaderCode )
 		{
 			//get uniform locations here using m_shader.FindUniform("string")
 			
-			//m_VertexLocation = glGetAttribLocationARB( m_shader.GetShaderID(), "vtex" );
-			m_VertexLocation = 0;
+			m_shader.BindShader();
+			m_VertexLocation = glGetAttribLocationARB( m_shader.GetShaderID(), "vtex" );
 
 			
-			//m_ColorLocation = glGetAttribLocationARB( m_shader.GetShaderID(), "color" );
-			m_ColorLocation = 1;
+			m_ColorLocation = glGetAttribLocationARB( m_shader.GetShaderID(), "color" );
 
 			return true;
 		}

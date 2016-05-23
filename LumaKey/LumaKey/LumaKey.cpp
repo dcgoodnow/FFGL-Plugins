@@ -7,7 +7,8 @@ int( *cross_secure_sprintf )(char *, size_t, const char *, ...) = sprintf_s;
 int( *cross_secure_sprintf )(char *, size_t, const char *, ...) = snprintf;
 #endif
 
-#define FFPARAM_THRESHOLD (0)
+#define FFPARAM_THRESHOLD_BEGIN (0)
+#define FFPARAM_THRESHOLD_END (1)
 
 #define STRINGIFY(A) #A
 
@@ -69,17 +70,20 @@ char *fragmentShaderCode = STRINGIFY(
 	// ==================== PASTE WITHIN THESE LINES =======================
 
 	uniform sampler2D tex0;
-	uniform float threshold;
+	uniform float thresholdBegin;
+	uniform float thresholdEnd;
 
 // Red screen test shader
 void main( void ) {
 	vec4 color = texture2D( tex0, gl_TexCoord[0].st );
-	float luma = .2126 * color[0] + .7152 * color[1] + .0722 * color[2];
-	if (luma < threshold)
-		luma = 0.0;
+	if (thresholdEnd < .01)
+		gl_FragColor = color;
 	else
-		luma = 1.0;
-	gl_FragColor = vec4(color.rgb, luma);
+	{
+		float luma = .2126 * color.x + .7152 * color.y + .0722 * color.z;
+		float alpha = smoothstep( thresholdBegin + .0001, thresholdEnd + .0001, luma );
+		gl_FragColor = vec4( color.xyz, alpha * color.w );
+	}
 }
 );
 
@@ -98,7 +102,8 @@ LumaKey::LumaKey()
 	SetMaxInputs( 1 );
 
 	//Setup Parameters
-	SetParamInfo( FFPARAM_THRESHOLD, "Threshold", FF_TYPE_STANDARD, 0.0f );
+	SetParamInfo( FFPARAM_THRESHOLD_BEGIN, "Threshold Begin", FF_TYPE_STANDARD, 0.0f );
+	SetParamInfo( FFPARAM_THRESHOLD_END, "Threshold End", FF_TYPE_STANDARD, 0.0f );
 
 	SetDefaults();
 
@@ -112,7 +117,8 @@ LumaKey::~LumaKey()
 
 void LumaKey::SetDefaults()
 {
-	m_threshold = 0.0;
+	m_thresholdEnd = 0.0;
+	m_thresholdBegin = 0.0;
 }
 
 FFResult LumaKey::InitGL( const FFGLViewportStruct *vp )
@@ -138,6 +144,11 @@ FFResult LumaKey::DeInitGL()
 	m_fbo = 0;
 	bInitialized = false;
 
+	return FF_SUCCESS;
+}
+
+FFResult LumaKey::GetInputStatus( DWORD dwIndex )
+{
 	return FF_SUCCESS;
 }
 
@@ -194,9 +205,14 @@ FFResult LumaKey::ProcessOpenGL( ProcessOpenGLStruct * pGL )
 				glBindTexture( GL_TEXTURE_2D, Texture0.Handle );
 		}
 
-		if (m_thresholdLocation >= 0)
+		if (m_thresholdEndLocation >= 0)
 		{
-			m_extensions.glUniform1fARB( m_thresholdLocation, m_threshold );
+			m_extensions.glUniform1fARB( m_thresholdEndLocation, m_thresholdEnd );
+		}
+
+		if (m_thresholdBeginLocation >= 0)
+		{
+			m_extensions.glUniform1fARB( m_thresholdBeginLocation, m_thresholdBegin );
 		}
 
 		glEnable( GL_TEXTURE_2D );
@@ -228,8 +244,13 @@ FFResult LumaKey::SetFloatParameter( unsigned int index, float value )
 {
 	switch (index)
 	{
-	case FFPARAM_THRESHOLD:
-		m_threshold = value;
+	case FFPARAM_THRESHOLD_END:
+		m_thresholdEnd = value;
+		break;
+
+	case FFPARAM_THRESHOLD_BEGIN:
+		if(value <= m_thresholdEnd)
+			m_thresholdBegin = value;
 		break;
 
 	default:
@@ -243,8 +264,12 @@ float LumaKey::GetFloatParameter( unsigned int index )
 {
 	switch (index)
 	{
-	case FFPARAM_THRESHOLD:
-		return m_threshold;
+	case FFPARAM_THRESHOLD_END:
+		return m_thresholdEnd;
+		break;
+
+	case FFPARAM_THRESHOLD_BEGIN:
+		return m_thresholdBegin;
 		break;
 
 	default:
@@ -283,8 +308,11 @@ bool LumaKey::LoadShader( std::string shaderString )
 			if (m_inputTextureLocation < 0)
 				m_inputTextureLocation = m_shader.FindUniform( "tex0" );
 
-			m_thresholdLocation = -1;
-			m_thresholdLocation = m_shader.FindUniform( "threshold" );
+			m_thresholdEndLocation = -1;
+			m_thresholdEndLocation = m_shader.FindUniform( "thresholdEnd" );
+
+			m_thresholdBeginLocation = -1;
+			m_thresholdBeginLocation = m_shader.FindUniform( "thresholdBegin" );
 
 			m_shader.UnbindShader();
 			if (m_glTexture0 > 0) glDeleteTextures( 1, &m_glTexture0 );

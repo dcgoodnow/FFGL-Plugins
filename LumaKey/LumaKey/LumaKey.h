@@ -78,8 +78,11 @@ protected:
 	float m_vpWidth;
 	float m_vpHeight;
 
-	float m_threshold;
-	GLint m_thresholdLocation;
+	float m_thresholdEnd;
+	GLint m_thresholdEndLocation;
+
+	float m_thresholdBegin;
+	GLint m_thresholdBeginLocation;
 
 	int m_initResources;
 	FFGLExtensions m_extensions;

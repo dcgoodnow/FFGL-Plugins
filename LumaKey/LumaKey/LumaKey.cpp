@@ -23,7 +23,8 @@ static CFFGLPluginInfo PluginInfo(
 	000,								// *** Plugin minor version number
 	FF_EFFECT,							// Plugin type can always be an effect
 										// FF_SOURCE,						// or change this to FF_SOURCE for shaders that do not use a texture
-	"Mirror for EDGE Nightclub Native Content",			// *** Plugin description - you can expand on this
+	"Luma Key: Filters out all pixels "					// *** Plugin description - you can expand on this
+	"with a luma value below the threshold",			
 	"by Daniel Goodnow (danielgoodnow@gmail.com)"		// *** About - use your own name and details
 	);
 
